@@ -1746,23 +1746,30 @@ static bool build_and_run(const char *compiler, const char *target_name,
     profile.debug_symbols = strcmp(compiler, "auto") == 0;
     profile.name = "debug";
 
-    if (cbox_build_target(&target, &profile, compiler)) {
-        test_output_path(output_path, sizeof(output_path), compiler, target_name,
-                         "executable", output);
-#ifdef _WIN32
-        (void)snprintf(executable, sizeof(executable), ".\\%s", output_path);
-#else
-        (void)snprintf(executable, sizeof(executable), "./%s", output_path);
-#endif
-        arguments[0] = executable;
-        arguments[1] = NULL;
-        if (cbox_run_process(arguments) == 0) {
-            (void)remove(output_path);
-            return true;
-        }
+    if (!cbox_build_target(&target, &profile, compiler)) {
+        fprintf(stderr, "CBox: failed to build integration target '%s' with %s\n",
+                target_name, compiler);
+        return false;
     }
     test_output_path(output_path, sizeof(output_path), compiler, target_name,
                      "executable", output);
+#ifdef _WIN32
+    (void)snprintf(executable, sizeof(executable), ".\\%s", output_path);
+#else
+    (void)snprintf(executable, sizeof(executable), "./%s", output_path);
+#endif
+    arguments[0] = executable;
+    arguments[1] = NULL;
+    {
+        int result = cbox_run_process(arguments);
+        if (result == 0) {
+            (void)remove(output_path);
+            return true;
+        }
+        fprintf(stderr,
+                "CBox: integration executable '%s' failed with exit code %d\n",
+                executable, result);
+    }
     (void)remove(output_path);
     return false;
 }
@@ -1993,6 +2000,7 @@ static bool test_legacy_static_kind_rejected(void) {
 }
 
 static bool build_static_math_and_run(const char *compiler, const char *suffix) {
+    const char *selected_compiler = cbox_resolve_compiler(compiler, false);
     char *library_sources[] = {"tests/static_math.c"};
     char *program_sources[] = {"tests/static_math_main.c"};
     char target_name[80];
@@ -2010,10 +2018,11 @@ static bool build_static_math_and_run(const char *compiler, const char *suffix) 
     cbox_profile profile = {0};
     bool success = false;
 
+    if (selected_compiler == NULL) return false;
     (void)snprintf(target_name, sizeof(target_name), "cbox-math-%s", suffix);
 #if defined(_WIN32)
     {
-        cbox_linker_kind linker_kind = strcmp(compiler, "gcc") == 0
+        cbox_linker_kind linker_kind = strcmp(selected_compiler, "gcc") == 0
             ? CBOX_LINKER_GNU : CBOX_LINKER_MSVC;
         archive_output = cbox_linker_static_library_output(linker_kind, target_name);
     }
@@ -2024,7 +2033,7 @@ static bool build_static_math_and_run(const char *compiler, const char *suffix) 
         return false;
     }
     test_output_path(target_output_path, sizeof(target_output_path),
-                     compiler, target_name, "static", archive_output);
+                     selected_compiler, target_name, "static", archive_output);
     (void)snprintf(archive_argument, sizeof(archive_argument), "%s",
                    target_output_path);
     (void)snprintf(program_output, sizeof(program_output), "cbox-math-%s.exe", suffix);
@@ -2056,14 +2065,14 @@ static bool build_static_math_and_run(const char *compiler, const char *suffix) 
     }
 #ifdef _WIN32
     test_output_path(program_path, sizeof(program_path),
-                     compiler, "cbox-math-check", "executable", program_output);
+                     selected_compiler, "cbox-math-check", "executable", program_output);
     (void)snprintf(executable, sizeof(executable), ".\\%s", program_path);
 #else
     test_output_path(program_path, sizeof(program_path),
-                     compiler, "cbox-math-check", "executable", program_output);
+                     selected_compiler, "cbox-math-check", "executable", program_output);
     (void)snprintf(executable, sizeof(executable), "./%s", program_path);
 #endif
-    test_output_path(archive_path, sizeof(archive_path), compiler, target_name,
+    test_output_path(archive_path, sizeof(archive_path), selected_compiler, target_name,
                      "static", archive_output);
     arguments[0] = executable;
     arguments[1] = NULL;
@@ -2071,8 +2080,8 @@ static bool build_static_math_and_run(const char *compiler, const char *suffix) 
 
 cleanup:
     test_output_path(program_path, sizeof(program_path),
-                     compiler, "cbox-math-check", "executable", program_output);
-    test_output_path(archive_path, sizeof(archive_path), compiler, target_name,
+                     selected_compiler, "cbox-math-check", "executable", program_output);
+    test_output_path(archive_path, sizeof(archive_path), selected_compiler, target_name,
                      "static", archive_output);
     (void)remove(program_path);
     (void)remove(archive_path);
@@ -2081,6 +2090,7 @@ cleanup:
 }
 
 static bool build_shared_library_and_run(const char *compiler, const char *suffix) {
+    const char *selected_compiler = cbox_resolve_compiler(compiler, false);
     char *shared_sources[] = {"tests/shared_value.c"};
     char *program_sources[] = {"tests/shared_value_main.c"};
     char target_name[80];
@@ -2108,15 +2118,16 @@ static bool build_shared_library_and_run(const char *compiler, const char *suffi
     cbox_profile profile = {0};
     bool success = false;
 
+    if (selected_compiler == NULL) return false;
 #ifdef _WIN32
-    linker_kind = strcmp(compiler, "gcc") == 0
+    linker_kind = strcmp(selected_compiler, "gcc") == 0
         ? CBOX_LINKER_GNU : CBOX_LINKER_MSVC;
 #else
     linker_kind = CBOX_LINKER_GNU;
 #endif
     (void)snprintf(target_name, sizeof(target_name), "cbox-shared-%s", suffix);
     (void)snprintf(program_name, sizeof(program_name), "cbox-shared-check-%s.exe", suffix);
-    library_directory = cbox_build_directory_name(compiler, target_name);
+    library_directory = cbox_build_directory_name(selected_compiler, target_name);
     if (library_directory == NULL) return false;
     shared_output = cbox_linker_shared_library_output(linker_kind, target_name);
     if (shared_output == NULL) {
@@ -2130,13 +2141,13 @@ static bool build_shared_library_and_run(const char *compiler, const char *suffi
         free(library_directory);
         return false;
     }
-    test_output_path(shared_path, sizeof(shared_path), compiler, target_name,
+    test_output_path(shared_path, sizeof(shared_path), selected_compiler, target_name,
                      "shared", shared_output);
-    test_output_path(import_path, sizeof(import_path), compiler, target_name,
+    test_output_path(import_path, sizeof(import_path), selected_compiler, target_name,
                      "shared", import_output);
 #else
     import_output = shared_output;
-    test_output_path(shared_path, sizeof(shared_path), compiler, target_name,
+    test_output_path(shared_path, sizeof(shared_path), selected_compiler, target_name,
                      "shared", shared_output);
     (void)snprintf(import_path, sizeof(import_path), "%s", shared_path);
 #endif
@@ -2183,16 +2194,16 @@ static bool build_shared_library_and_run(const char *compiler, const char *suffi
     }
 #if defined(_WIN32) || defined(_WIN64)
     test_output_path(deployed_shared_path, sizeof(deployed_shared_path),
-                     compiler, "cbox-shared-check", "shared", shared_output);
+                     selected_compiler, "cbox-shared-check", "shared", shared_output);
     if (!test_copy_file(shared_path, deployed_shared_path)) goto cleanup;
 #endif
 #ifdef _WIN32
     test_output_path(program_path, sizeof(program_path),
-                     compiler, "cbox-shared-check", "executable", program_name);
+                     selected_compiler, "cbox-shared-check", "executable", program_name);
     (void)snprintf(executable, sizeof(executable), ".\\%s", program_path);
 #else
     test_output_path(program_path, sizeof(program_path),
-                     compiler, "cbox-shared-check", "executable", program_name);
+                     selected_compiler, "cbox-shared-check", "executable", program_name);
     (void)snprintf(executable, sizeof(executable), "./%s", program_path);
 #endif
     arguments[0] = executable;
@@ -2201,7 +2212,7 @@ static bool build_shared_library_and_run(const char *compiler, const char *suffi
 
 cleanup:
     test_output_path(program_path, sizeof(program_path),
-                     compiler, "cbox-shared-check", "executable", program_name);
+                     selected_compiler, "cbox-shared-check", "executable", program_name);
     (void)remove(program_path);
     (void)remove(shared_path);
 #if defined(_WIN32) || defined(_WIN64)
@@ -2212,7 +2223,7 @@ cleanup:
         char export_name[144];
         (void)snprintf(export_name, sizeof(export_name), "%s.exp", target_name);
         test_output_path(export_output, sizeof(export_output),
-                         compiler, target_name, "shared", export_name);
+                         selected_compiler, target_name, "shared", export_name);
         (void)remove(export_output);
     }
 #endif
@@ -2236,6 +2247,14 @@ int main(void) {
     const char *auto_compiler = cbox_resolve_compiler("auto", true);
     size_t index;
     size_t tested = 0U;
+
+#define RUN_INTEGRATION_TEST(expression) \
+    do { \
+        if (!(expression)) { \
+            fprintf(stderr, "CBox: integration check failed: %s\n", #expression); \
+            return 1; \
+        } \
+    } while (0)
 
     for (index = 0; index < sizeof(compilers) / sizeof(compilers[0]); ++index) {
         char mixed_output[64];
@@ -2275,30 +2294,30 @@ int main(void) {
         fprintf(stderr, "CBox: C++ modules failed with automatically selected MSVC\n");
         return 1;
     }
-    if (!build_and_run("auto", "cpp-auto-mixed.exe", "cpp-auto-mixed.exe", false)
-        || !build_and_run("auto", "cpp-auto-only.exe", "cpp-auto-only.exe", true)
-        || !build_shared_library_and_run("auto", "auto")
-        || !build_static_math_and_run("auto", "auto")
-        || !test_delete_globs()
-        || !test_cache_format_and_hashes()
-        || !test_cache_batch_hashing()
-        || !test_cache_u32_record_ids()
-        || !test_incremental_header_rebuild()
-        || !test_link_dependency_graph_rebuild()
-        || !test_delete_task_from_toml()
-        || !test_config_versions_and_shell_tasks()
-        || !test_cpp_modules_config()
-        || !test_output_extension_resolution()
-        || !test_linker_library_arguments()
-        || !test_parallel_worker_dispatch()
-        || !test_parallel_target_dependencies()
-        || !test_parallel_compilation_threshold()
-        || !test_compiler_build_directories()
-        || !test_module_graph_planning()
-        || !test_legacy_static_kind_rejected()) {
-        fprintf(stderr, "CBox: C++ integration test failed with automatic compiler selection\n");
-        return 1;
-    }
+    RUN_INTEGRATION_TEST(build_and_run(
+        "auto", "cpp-auto-mixed.exe", "cpp-auto-mixed.exe", false));
+    RUN_INTEGRATION_TEST(build_and_run(
+        "auto", "cpp-auto-only.exe", "cpp-auto-only.exe", true));
+    RUN_INTEGRATION_TEST(build_shared_library_and_run("auto", "auto"));
+    RUN_INTEGRATION_TEST(build_static_math_and_run("auto", "auto"));
+    RUN_INTEGRATION_TEST(test_delete_globs());
+    RUN_INTEGRATION_TEST(test_cache_format_and_hashes());
+    RUN_INTEGRATION_TEST(test_cache_batch_hashing());
+    RUN_INTEGRATION_TEST(test_cache_u32_record_ids());
+    RUN_INTEGRATION_TEST(test_incremental_header_rebuild());
+    RUN_INTEGRATION_TEST(test_link_dependency_graph_rebuild());
+    RUN_INTEGRATION_TEST(test_delete_task_from_toml());
+    RUN_INTEGRATION_TEST(test_config_versions_and_shell_tasks());
+    RUN_INTEGRATION_TEST(test_cpp_modules_config());
+    RUN_INTEGRATION_TEST(test_output_extension_resolution());
+    RUN_INTEGRATION_TEST(test_linker_library_arguments());
+    RUN_INTEGRATION_TEST(test_parallel_worker_dispatch());
+    RUN_INTEGRATION_TEST(test_parallel_target_dependencies());
+    RUN_INTEGRATION_TEST(test_parallel_compilation_threshold());
+    RUN_INTEGRATION_TEST(test_compiler_build_directories());
+    RUN_INTEGRATION_TEST(test_module_graph_planning());
+    RUN_INTEGRATION_TEST(test_legacy_static_kind_rejected());
+#undef RUN_INTEGRATION_TEST
     printf("CBox: C++ integration tests passed with %zu toolchain(s)\n", tested);
     return 0;
 }
