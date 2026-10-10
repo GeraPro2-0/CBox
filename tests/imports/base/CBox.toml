@@ -1,0 +1,8 @@
+[cbox]
+version = "1.0"
+
+[[target]]
+name = "base"
+kind = "static"
+c_sources = ["src/base.c"]
+include_dirs = ["include"]

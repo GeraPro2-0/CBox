@@ -1,0 +1,8 @@
+[cbox]
+version = "1.0"
+
+[project]
+name = "format-1.0-test"
+
+[task.legacy]
+print = "Legacy format accepted"

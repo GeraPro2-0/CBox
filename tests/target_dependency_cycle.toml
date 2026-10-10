@@ -1,0 +1,13 @@
+[cbox]
+version = "1.0"
+
+[[target]]
+name = "cycle-a"
+depends_on = ["cycle-b"]
+
+[[target]]
+name = "cycle-b"
+depends_on = ["cycle-a"]
+
+[task.build]
+target = "cycle-a"

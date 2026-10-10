@@ -1,0 +1,5 @@
+libs/** linguist-documentation
+third_party/** linguist-documentation
+*Makefile* linguist-documentation
+*CMakeLists.txt* linguist-documentation
+tests/** linguist-documentation

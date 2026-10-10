@@ -1,0 +1,167 @@
+name: Build CBox
+
+on:
+  push:
+    tags:
+      - "*"
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux
+            archive: tar.gz
+          - runner: windows-latest
+            platform: windows
+            archive: zip
+          - runner: macos-latest
+            platform: macos
+            archive: tar.gz
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Read CBox versions
+        id: versions
+        shell: pwsh
+        run: |
+          $content = Get-Content CBox.toml -Raw
+          $cboxSection = [regex]::Match($content, '(?ms)^\[cbox\]\s*(.*?)(?=^\[|\z)').Groups[1].Value
+          $projectSection = [regex]::Match($content, '(?ms)^\[project\]\s*(.*?)(?=^\[|\z)').Groups[1].Value
+          $cboxVersion = [regex]::Match($cboxSection, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
+          $projectVersion = [regex]::Match($projectSection, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
+          if (-not $cboxVersion -or -not $projectVersion) {
+            throw "Could not read [cbox].version and [project].version from CBox.toml"
+          }
+          if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME -ne $cboxVersion) {
+            throw "Git tag '$env:GITHUB_REF_NAME' must match [cbox].version '$cboxVersion'"
+          }
+          "cbox-version=$cboxVersion" >> $env:GITHUB_OUTPUT
+          "project-version=$projectVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build CBox
+        run: cmake --build build --config Release --parallel
+
+      - name: Package release archive
+        id: package
+        shell: pwsh
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          ARCHIVE_FORMAT: ${{ matrix.archive }}
+          CBOX_VERSION: ${{ steps.versions.outputs.cbox-version }}
+        run: |
+          $name = "CBox-$env:CBOX_VERSION-$env:PLATFORM-latest"
+          $package = Join-Path $PWD $name
+          New-Item -ItemType Directory -Path $package | Out-Null
+          cmake --install build --config Release --prefix $package
+          if ($LASTEXITCODE -ne 0) { throw "CMake install failed" }
+
+          $archive = "$name.$env:ARCHIVE_FORMAT"
+          if ($env:ARCHIVE_FORMAT -eq "zip") {
+            Add-Type -AssemblyName System.IO.Compression
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $zip = [System.IO.Compression.ZipFile]::Open(
+              $archive, [System.IO.Compression.ZipArchiveMode]::Create)
+            try {
+              Get-ChildItem -LiteralPath $package -File -Recurse |
+                ForEach-Object {
+                  $relative = $_.FullName.Substring($package.Length + 1).Replace('\', '/')
+                  $entry = "$name/$relative"
+                  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                    $zip, $_.FullName, $entry,
+                    [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+                }
+            } finally {
+              $zip.Dispose()
+            }
+          } else {
+            tar -czf $archive $name
+            if ($LASTEXITCODE -ne 0) { throw "Creating tar.gz archive failed" }
+          }
+          "archive=$archive" >> $env:GITHUB_OUTPUT
+
+      - name: Upload packaged CBox
+        uses: actions/upload-artifact@v4
+        with:
+          name: cbox-${{ matrix.platform }}-package
+          path: ${{ steps.package.outputs.archive }}
+          if-no-files-found: error
+          retention-days: 14
+
+  test:
+    name: Integration tests (Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang
+
+      - name: Configure tests
+        run: cmake -S . -B build-tests -DCMAKE_BUILD_TYPE=Release -DCBOX_BUILD_TESTS=ON
+
+      - name: Build test runner
+        run: cmake --build build-tests --config Release --target cbox_test_runner --parallel
+
+      - name: Run integration tests
+        run: ctest --test-dir build-tests -C Release --output-on-failure
+
+  release:
+    name: Publish GitHub Release
+    if: github.ref_type == 'tag'
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Read project release version
+        id: versions
+        shell: pwsh
+        run: |
+          $content = Get-Content CBox.toml -Raw
+          $projectSection = [regex]::Match($content, '(?ms)^\[project\]\s*(.*?)(?=^\[|\z)').Groups[1].Value
+          $projectVersion = [regex]::Match($projectSection, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
+          if (-not $projectVersion) {
+            throw "Could not read [project].version from CBox.toml"
+          }
+          "project-version=$projectVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Download platform archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cbox-*-package
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create release and attach archives
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CBox v${{ steps.versions.outputs.project-version }} Release
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: release-assets/*

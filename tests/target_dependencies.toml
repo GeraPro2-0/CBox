@@ -1,0 +1,25 @@
+[cbox]
+version = "1.0"
+
+[project]
+name = "target-dependency-test"
+
+[[target]]
+name = "dag-first"
+kind = "static"
+c_sources = ["tests/target_link_value.c"]
+
+[[target]]
+name = "dag-second"
+kind = "static"
+c_sources = ["tests/shared_value.c"]
+
+[[target]]
+name = "dag-app"
+kind = "executable"
+c_sources = ["tests/target_link_main.c"]
+link_targets = ["dag-first"]
+depends_on = ["dag-second"]
+
+[task.build]
+target = "dag-app"

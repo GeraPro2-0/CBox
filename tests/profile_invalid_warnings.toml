@@ -1,0 +1,5 @@
+[cbox]
+version = "1.0"
+
+[profile.invalid]
+warnings = "everything"

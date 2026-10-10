@@ -1,0 +1,15 @@
+[cbox]
+version = "1.0"
+
+[project]
+name = "cpp-modules-test"
+
+[toolchain]
+compiler = "auto"
+
+[[target]]
+name = "cpp-modules-test"
+kind = "executable"
+cpp = "c++20"
+# Module units build in this order before the target's cpp_sources.
+cpp_modules = ["tests/cpp/modules/base.cppm", "tests/cpp/modules/sum.ixx"]

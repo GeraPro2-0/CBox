@@ -1,0 +1,5 @@
+[cbox]
+version = "1.0"
+
+[task.clean]
+delete = "CBoxBuild/*"

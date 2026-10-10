@@ -1,0 +1,14 @@
+[cbox]
+version = "1.0"
+
+[[dependency]]
+name = "base"
+path = "../base/CBox.toml"
+target = "base"
+
+[[target]]
+name = "math"
+kind = "static"
+c_sources = ["src/math.c"]
+include_dirs = ["include"]
+link_targets = ["base"]

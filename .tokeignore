@@ -1,0 +1,10 @@
+# I'm using Tokei. It's interesting.
+
+tests/
+include/
+libs/
+third_party/
+CBoxBuild/
+docs/
+Makefile
+CMakeLists.txt

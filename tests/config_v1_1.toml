@@ -1,0 +1,8 @@
+[cbox]
+version = "1.1"
+
+[project]
+name = "unsupported-format-test"
+
+[task.legacy]
+print = "Should not load"

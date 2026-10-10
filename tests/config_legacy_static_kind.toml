@@ -1,0 +1,7 @@
+[cbox]
+version = "1.0"
+
+[[target]]
+name = "legacy-static"
+kind = "static_library"
+c_sources = ["tests/static_math.c"]

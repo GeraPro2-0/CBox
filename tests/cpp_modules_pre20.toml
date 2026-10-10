@@ -1,0 +1,14 @@
+[cbox]
+version = "1.0"
+
+[project]
+name = "cpp-modules-pre20-test"
+
+[toolchain]
+compiler = "auto"
+
+[[target]]
+name = "cpp-modules-pre20-test"
+kind = "executable"
+cpp = "c++17"
+cpp_modules = ["tests/cpp/modules/base.cppm"]

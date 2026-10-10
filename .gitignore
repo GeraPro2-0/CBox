@@ -1,0 +1,66 @@
+# Build output
+/CBoxBuild/
+/build/
+/package/
+
+# Generated object files and executables
+*.o
+*.obj
+*.exe
+*.dll
+*.lib
+*.a
+*.so
+*.dylib
+*.pdb
+*.ilk
+*.lo
+*.la
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains (IntelliJ, PyCharm, WebStorm, etc.)
+.idea/
+
+# Sublime Text
+*.sublime-workspace
+
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+xcuserdata/
+
+# Eclipse & NetBeans
+.metadata/
+.classpath
+.project
+.settings/
+nbproject/private/
+
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.log.*
+*.tmp
+*.temp
+*.bak
+*.cache
+*.lnk
+
+# Other things to ignore
+
+.clang-tidy

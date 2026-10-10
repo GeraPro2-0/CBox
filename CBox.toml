@@ -1,0 +1,49 @@
+[cbox]
+version = "1.0"
+
+[project]
+name = "CBox"
+version = "1.0.0"
+description = "A TOML-based C/C++ build system"
+authors = ["GeraPro2_0 <geritorend0n@gmail.com>"]
+license = "Apache 2.0"
+
+[toolchain]
+compiler = "auto"
+
+[[target]]
+name = "cbox"
+kind = "executable"
+freestanding = false
+c = "c17"
+cpp = "c++20"
+output = "cbox"
+
+# Yeah, CBox is written in C and a bit of C++.
+c_sources = ["src/**/*.c", "third_party/**/*.c"]
+cpp_sources = ["src/model/*.cpp", "src/util/*.cpp"]
+include_dirs = ["include", "src", "libs", "third_party", "third_party/tomlc17"]
+
+[profile.release]
+optimization = "release"
+warnings = "strict"
+debug_symbols = false
+
+[profile.debug]
+optimization = "debug"
+warnings = "strict"
+debug_symbols = true
+
+[task.debug]
+target = "cbox"
+profile = "debug"
+print = "Debug build ({profile.name}, {profile.optimization}, debug_symbols={profile.debug_symbols}): {target.name} ({target.kind})"
+
+[task.release]
+target = "cbox"
+profile = "release"
+print = "Release build ({profile.name}, {profile.optimization}, debug_symbols={profile.debug_symbols}): {target.name} ({target.kind})"
+
+[task.clean]
+print = "Cleaning build artifacts"
+delete = ["CBoxBuild/*"]

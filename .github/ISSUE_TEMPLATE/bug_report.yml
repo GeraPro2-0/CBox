@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible bug in CBox.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For security vulnerabilities, do not use this form. Please follow [SECURITY.md](https://github.com/GeraPro2-0/CBox/blob/master/SECURITY.md) to report privately.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the behavior and why you believe it is a bug.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest relevant CBox.toml snippet and commands.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: CBox version/commit, OS, compiler and version, and relevant build mode.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or additional context
+      description: Remove secrets and private data before posting.
+    validations:
+      required: false

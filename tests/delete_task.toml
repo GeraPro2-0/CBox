@@ -1,0 +1,31 @@
+[cbox]
+version = "1.0"
+
+[project]
+name = "delete-task-test"
+
+[task.clean]
+print = "Delete task integration test"
+delete = ["tests/.cbox-delete-task-*"]
+
+[task.shell_check]
+shell = "native"
+
+[task.shell_check.platform_commands.windows]
+shell = "cmd"
+command = "exit /b 0"
+
+[task.shell_check.platform_commands.linux]
+shell = "bash"
+command = "exit 0"
+
+[task.shell_check.platform_commands.macos]
+shell = "zsh"
+command = "exit 0"
+
+[task.powershell_check]
+shell = "powershell"
+command = "exit 0"
+
+[task.native_check]
+command = "exit 0"

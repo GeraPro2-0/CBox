@@ -1,0 +1,71 @@
+[cbox]
+version = "1.0"
+
+[project]
+name = "metadata-test"
+version = "2.4.1"
+description = "Project metadata summary fixture"
+authors = ["Ada Example", "Grace Example"]
+license = "Apache 2.0"
+
+[toolchain]
+compiler = "gcc"
+
+[task.freestanding-disabled]
+target = "metadata-disabled"
+
+[task.freestanding-enabled]
+target = "metadata-enabled"
+
+[task.freestanding-undeclared]
+target = "metadata-static"
+
+[task.imported-library-build]
+target = "metadata-test"
+profile = "checked"
+
+[profile.checked]
+warnings = "basic"
+
+[profile.extended]
+warnings = "extra"
+
+[profile.strict]
+warnings = "strict"
+
+[profile.legacy]
+warnings = "all"
+
+[[dependency]]
+name = "metadata-library"
+path = "imports/math/CBox.toml"
+target = "math"
+
+[[target]]
+name = "metadata-test"
+kind = "executable"
+c_sources = ["tests/imports/app/main.c"]
+link_targets = ["metadata-library"]
+
+[[target]]
+name = "metadata-static"
+kind = "static"
+c_sources = ["tests/static_math.c"]
+
+[[target]]
+name = "metadata-shared"
+kind = "shared"
+c_sources = ["tests/shared_value.c"]
+
+[[target]]
+name = "metadata-enabled"
+kind = "static"
+freestanding = true
+entry_point = "_start"
+c_sources = ["tests/static_math.c"]
+
+[[target]]
+name = "metadata-disabled"
+kind = "static"
+freestanding = false
+c_sources = ["tests/static_math.c"]

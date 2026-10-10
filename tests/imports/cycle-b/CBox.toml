@@ -1,0 +1,12 @@
+[cbox]
+version = "1.0"
+
+[[dependency]]
+name = "cycle-a"
+path = "../cycle-a/CBox.toml"
+target = "cycle-a"
+
+[[target]]
+name = "cycle-b"
+kind = "static"
+c_sources = ["cycle-b.c"]
