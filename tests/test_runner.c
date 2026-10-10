@@ -1810,7 +1810,13 @@ static bool build_cpp_modules_and_run(const char *compiler, const char *suffix) 
     arguments[0] = executable;
     arguments[1] = NULL;
     {
-        bool success = cbox_run_process(arguments) == 0;
+        int result = cbox_run_process(arguments);
+        bool success = result == 0;
+        if (!success) {
+            fprintf(stderr,
+                    "CBox: C++ module executable '%s' failed with exit code %d\n",
+                    executable, result);
+        }
         (void)remove(output_path);
         return success;
     }
@@ -2227,6 +2233,7 @@ int main(void) {
         {"gcc", "g++"},
         {"clang", "clang++"}
     };
+    const char *auto_compiler = cbox_resolve_compiler("auto", true);
     size_t index;
     size_t tested = 0U;
 
@@ -2263,9 +2270,13 @@ int main(void) {
     if (!test_project_metadata_config()) return 1;
     if (!test_assembly_generation() || !test_syntax_check()) return 1;
     if (!test_source_glob_deduplication()) return 1;
+    if (auto_compiler != NULL && strcmp(auto_compiler, "msvc") == 0
+        && !build_cpp_modules_and_run("auto", "auto")) {
+        fprintf(stderr, "CBox: C++ modules failed with automatically selected MSVC\n");
+        return 1;
+    }
     if (!build_and_run("auto", "cpp-auto-mixed.exe", "cpp-auto-mixed.exe", false)
         || !build_and_run("auto", "cpp-auto-only.exe", "cpp-auto-only.exe", true)
-        || !build_cpp_modules_and_run("auto", "auto")
         || !build_shared_library_and_run("auto", "auto")
         || !build_static_math_and_run("auto", "auto")
         || !test_delete_globs()
