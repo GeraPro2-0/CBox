@@ -183,7 +183,7 @@ static bool gcc_compile_object(const cbox_target *target, const cbox_profile *pr
             arenalib_arena_destroy(&argument_arena);
             return false;
         }
-        arguments[index++] = "-fmodules";
+        arguments[index++] = "-fmodules-ts";
         (void)snprintf(mapper_option, strlen(module_mapper) + 18U,
                        "-fmodule-mapper=%s", module_mapper);
         arguments[index++] = mapper_option;

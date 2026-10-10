@@ -149,9 +149,9 @@ on the installed compiler's level of module support.
 
 ## Toolchain notes
 
-- **GCC:** uses `gcc` and `g++`; module builds enable GCC's module support and
-  generate a module mapper for the declared modules. GCC's modules
-  implementation is experimental/incomplete in some releases.
+- **GCC:** uses `gcc` and `g++`; module builds enable GCC's module support with
+  `-fmodules-ts` and generate a module mapper for the declared modules. GCC's
+  modules implementation is experimental/incomplete in some releases.
 - **Clang:** uses `clang` and `clang++`; module interfaces are precompiled and
   then compiled to object files, with module references provided to importers.
 - **MSVC:** uses `cl` to compile C and C++ files, using its module-interface
