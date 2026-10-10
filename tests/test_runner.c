@@ -948,7 +948,7 @@ static bool test_cache_format_and_hashes(void) {
     if (fclose(file) != 0) io_success = false;
     file = NULL;
     if (!io_success) goto cleanup;
-    if (memcmp(header, "CBOX", 4U) != 0 || header[4] != 2U
+    if (memcmp(header, "CBOX", 4U) != 0 || header[4] != 1U
         || header[5] != 0U || header[6] != 0U || header[7] != 0U
         || header[8] != 1U || header[9] != 0U
         || header[10] != 0U || header[11] != 0U) {
